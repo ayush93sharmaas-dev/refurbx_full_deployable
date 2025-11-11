@@ -1,0 +1,42 @@
+version: '3.8'
+services:
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: refurbx
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - '5432:5432'
+
+  backend:
+    build: ./backend
+    command: sh -c "npx prisma migrate deploy && npm run dev"
+    volumes:
+      - ./backend:/usr/src/app
+    ports:
+      - '4000:4000'
+    environment:
+      DATABASE_URL: postgres://postgres:postgres@db:5432/refurbx
+      JWT_SECRET: supersecret_jwt_key
+      REFRESH_SECRET: supersecret_refresh_key
+    depends_on:
+      - db
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    volumes:
+      - ./frontend:/usr/src/app
+    ports:
+      - '5173:80'
+    environment:
+      VITE_API_BASE: http://backend:4000/api
+    depends_on:
+      - backend
+
+volumes:
+  db_data:
